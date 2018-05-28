@@ -1,5 +1,15 @@
 {
   "expo": {
-    "sdkVersion": "27.0.0"
+    "name": "Panicoin",
+    "icon": "./logo.png",
+    "description": "Show the panic on bitcoin",
+    "version": "1.0.0",
+    "sdkVersion": "27.0.0",
+    "ios": {
+      "bundleIdentifier": "com.santiagomena.panicoin"
+    },
+    "android": {
+      "package": "com.santiagomena.panicoin"
+    }
   }
 }
