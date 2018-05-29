@@ -12,7 +12,7 @@ export default class App extends React.Component {
 class Panicoin extends React.Component {
   constructor(props) {
     super(props);
-    this.state = {bitcoinPrice: 0, bitcoinStatus: true};
+    this.state = {bitcoinPrice: 0, bitcoinStatus: null, diferencia: null};
     //const apiUrl = 'https://bitex.la/api-v1/rest/btc_usd/market/ticker';
     const apiUrl = 'https://www.bitstamp.net/api/ticker/';
     setInterval(() => {
@@ -23,16 +23,27 @@ class Panicoin extends React.Component {
           const lastPrice = previousState.bitcoinPrice;
           const newPrice = responseJson.ask;
           console.log('New Ask Price: '+newPrice);
-          return { bitcoinPrice: newPrice, bitcoinStatus: lastPrice <= newPrice};
+          const bitcoinStatus = (() => {
+            if(newPrice == lastPrice || newPrice - lastPrice == newPrice)
+              return `igual`;
+            else if(newPrice > lastPrice)
+              return `subio`;
+            else
+              return `bajo`;
+          })();
+          const diferencia = newPrice - lastPrice == newPrice ? 0 : newPrice - lastPrice;
+          const strDiferencia = diferencia > 0 ? `+`+diferencia : diferencia;
+          return { bitcoinPrice: newPrice, bitcoinStatus: bitcoinStatus, diferencia: strDiferencia};
         });
       });
-    }, 3500);
+    }, 1000);
   }
   render(){
     return (
       <View style={styles.container}>
-        <Meme bitcoinStatus={this.state.bitcoinStatus}/>
-        <Bitcoin bitcoinPrice={this.state.bitcoinPrice}/>
+        <Diferencia diferencia={this.state.diferencia} />
+        <Meme bitcoinStatus={this.state.bitcoinStatus} />
+        <Bitcoin bitcoinPrice={this.state.bitcoinPrice} />
       </View>
     );
   }
@@ -46,11 +57,22 @@ class Meme extends React.Component {
     const badPics = [
       'https://i.giphy.com/RgxAkfVQWwkjS.gif'
     ];
-    const getPic = (ok) => {
-      if(ok)
+    const samePics = [
+      'https://im6.ezgif.com/tmp/ezgif-6-d5cf8eb835.gif'
+    ];
+    const loadingPics = [
+      'https://thebitcoinpub-91d3.kxcdn.com/uploads/default/original/2X/0/003de396bae5f4267b5fa7b2e93d513f0d0c6c01.gif'
+    ];
+
+    const getPic = (status) => {
+      if(status == `subio`)
         return goodPics[0];
-      else
+      else if(status == `bajo`)
         return badPics[0];
+      else if(status == `igual`)
+        return samePics[0];
+      else
+        return loadingPics[0];
     };
     let bitcoinStatus = this.props.bitcoinStatus;
     let pic = {
@@ -64,9 +86,18 @@ class Meme extends React.Component {
 
 class Bitcoin extends React.Component {
   render(){
-    let precio = this.props.bitcoinPrice;
+    let precio = this.props.bitcoinPrice  === 0 ? '...' : this.props.bitcoinPrice;
     return (
       <Text style={styles.text}>$ {precio}</Text>
+    );
+  }
+}
+
+class Diferencia extends React.Component {
+  render(){
+    let diferencia = this.props.diferencia;
+    return(
+      <Text style={diferencia < 0 ? styles.diferenciaBajo : styles.diferenciaSubio}>{diferencia}</Text>
     );
   }
 }
@@ -87,6 +118,17 @@ const styles = StyleSheet.create({
     width: 250,
     height: 250,
     flex:1
+  },
+  diferencia: {
+    color: 'black',
+    fontSize: 20,
+
+  },
+  diferenciaSubio: {
+    color: 'green',
+  },
+  diferenciaBajo: {
+    color: 'red',
   }
 
 });
