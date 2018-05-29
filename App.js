@@ -52,16 +52,16 @@ class Panicoin extends React.Component {
 class Meme extends React.Component {
   render(){
     const goodPics = [
-      'https://media.giphy.com/media/xUOxeVWzTVwAnOm7m0/giphy.gif'
+      require('./assets/images/up.gif')
     ];
     const badPics = [
-      'https://i.giphy.com/RgxAkfVQWwkjS.gif'
+      require('./assets/images/down.gif')
     ];
     const samePics = [
-      'https://im6.ezgif.com/tmp/ezgif-6-d5cf8eb835.gif'
+      require('./assets/images/same.gif')
     ];
     const loadingPics = [
-      'https://thebitcoinpub-91d3.kxcdn.com/uploads/default/original/2X/0/003de396bae5f4267b5fa7b2e93d513f0d0c6c01.gif'
+      require('./assets/images/load.gif')
     ];
 
     const getPic = (status) => {
@@ -74,10 +74,8 @@ class Meme extends React.Component {
       else
         return loadingPics[0];
     };
-    let bitcoinStatus = this.props.bitcoinStatus;
-    let pic = {
-      uri: getPic(bitcoinStatus),
-    };
+    const bitcoinStatus = this.props.bitcoinStatus;
+    const pic = getPic(bitcoinStatus);
     return (
       <Image source={pic} style={styles.image}/>
     );
@@ -97,7 +95,7 @@ class Diferencia extends React.Component {
   render(){
     let diferencia = this.props.diferencia;
     return(
-      <Text style={diferencia < 0 ? styles.diferenciaBajo : styles.diferenciaSubio}>{diferencia}</Text>
+      <Text style={diferencia < 0 ? styles.diferenciaBajo : styles.diferenciaSubio}>{diferencia == 0 ? `` : diferencia}</Text>
     );
   }
 }
