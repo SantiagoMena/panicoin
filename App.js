@@ -1,8 +1,52 @@
 import React from 'react';
-import { StyleSheet, Text, View, Image } from 'react-native';
+import { StyleSheet, Text, View, Image, Slider } from 'react-native';
+import { AppLoading, Asset, Font } from 'expo';
+import { FontAwesome } from '@expo/vector-icons';
+
+
+function cacheImages(images) {
+  return images.map(image => {
+    if (typeof image === 'string') {
+      return Image.prefetch(image);
+    } else {
+      return Asset.fromModule(image).downloadAsync();
+    }
+  });
+}
+
+function cacheFonts(fonts) {
+  return fonts.map(font => Font.loadAsync(font));
+}
 
 export default class App extends React.Component {
+  state = {
+    isReady: false,
+  };
+
+  async _loadAssetsAsync() {
+    const imageAssets = cacheImages([
+      require('./assets/images/up.gif'),
+      require('./assets/images/down.gif'),
+      require('./assets/images/same.gif'),
+      require('./assets/images/load.gif'),
+    ]);
+
+    const fontAssets = cacheFonts([FontAwesome.font]);
+
+    await Promise.all([...imageAssets, ...fontAssets]);
+  }
+
   render() {
+    if (!this.state.isReady) {
+      return (
+        <AppLoading
+          startAsync={this._loadAssetsAsync}
+          onFinish={() => this.setState({ isReady: true })}
+          onError={console.warn}
+        />
+      );
+    }
+
     return (
       <Panicoin />
     );
@@ -41,6 +85,15 @@ class Panicoin extends React.Component {
   render(){
     return (
       <View style={styles.container}>
+      <Slider
+       style={{ width: 300}}
+       step={1}
+       minimumValue={18}
+       maximumValue={71}
+       value={200}
+       onValueChange={val => alert(val)}
+       onSlidingComplete={ val => alert(val)}
+      />
         <Diferencia diferencia={this.state.diferencia} />
         <Meme bitcoinStatus={this.state.bitcoinStatus} />
         <Bitcoin bitcoinPrice={this.state.bitcoinPrice} />
@@ -52,16 +105,16 @@ class Panicoin extends React.Component {
 class Meme extends React.Component {
   render(){
     const goodPics = [
-      'https://media.giphy.com/media/xUOxeVWzTVwAnOm7m0/giphy.gif'
+      require('./assets/images/up.gif')
     ];
     const badPics = [
-      'https://i.giphy.com/RgxAkfVQWwkjS.gif'
+      require('./assets/images/down.gif')
     ];
     const samePics = [
-      'https://im6.ezgif.com/tmp/ezgif-6-d5cf8eb835.gif'
+      require('./assets/images/same.gif')
     ];
     const loadingPics = [
-      'https://thebitcoinpub-91d3.kxcdn.com/uploads/default/original/2X/0/003de396bae5f4267b5fa7b2e93d513f0d0c6c01.gif'
+      require('./assets/images/load.gif')
     ];
 
     const getPic = (status) => {
@@ -74,10 +127,8 @@ class Meme extends React.Component {
       else
         return loadingPics[0];
     };
-    let bitcoinStatus = this.props.bitcoinStatus;
-    let pic = {
-      uri: getPic(bitcoinStatus),
-    };
+    const bitcoinStatus = this.props.bitcoinStatus;
+    const pic = getPic(bitcoinStatus);
     return (
       <Image source={pic} style={styles.image}/>
     );
@@ -97,7 +148,7 @@ class Diferencia extends React.Component {
   render(){
     let diferencia = this.props.diferencia;
     return(
-      <Text style={diferencia < 0 ? styles.diferenciaBajo : styles.diferenciaSubio}>{diferencia}</Text>
+      <Text style={diferencia < 0 ? styles.diferenciaBajo : styles.diferenciaSubio}>{diferencia == 0 ? `` : diferencia}</Text>
     );
   }
 }
