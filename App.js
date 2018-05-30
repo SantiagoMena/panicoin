@@ -1,8 +1,52 @@
 import React from 'react';
-import { StyleSheet, Text, View, Image } from 'react-native';
+import { StyleSheet, Text, View, Image, Slider } from 'react-native';
+import { AppLoading, Asset, Font } from 'expo';
+import { FontAwesome } from '@expo/vector-icons';
+
+
+function cacheImages(images) {
+  return images.map(image => {
+    if (typeof image === 'string') {
+      return Image.prefetch(image);
+    } else {
+      return Asset.fromModule(image).downloadAsync();
+    }
+  });
+}
+
+function cacheFonts(fonts) {
+  return fonts.map(font => Font.loadAsync(font));
+}
 
 export default class App extends React.Component {
+  state = {
+    isReady: false,
+  };
+
+  async _loadAssetsAsync() {
+    const imageAssets = cacheImages([
+      require('./assets/images/up.gif'),
+      require('./assets/images/down.gif'),
+      require('./assets/images/same.gif'),
+      require('./assets/images/load.gif'),
+    ]);
+
+    const fontAssets = cacheFonts([FontAwesome.font]);
+
+    await Promise.all([...imageAssets, ...fontAssets]);
+  }
+
   render() {
+    if (!this.state.isReady) {
+      return (
+        <AppLoading
+          startAsync={this._loadAssetsAsync}
+          onFinish={() => this.setState({ isReady: true })}
+          onError={console.warn}
+        />
+      );
+    }
+
     return (
       <Panicoin />
     );
@@ -41,6 +85,15 @@ class Panicoin extends React.Component {
   render(){
     return (
       <View style={styles.container}>
+      <Slider
+       style={{ width: 300}}
+       step={1}
+       minimumValue={18}
+       maximumValue={71}
+       value={200}
+       onValueChange={val => alert(val)}
+       onSlidingComplete={ val => alert(val)}
+      />
         <Diferencia diferencia={this.state.diferencia} />
         <Meme bitcoinStatus={this.state.bitcoinStatus} />
         <Bitcoin bitcoinPrice={this.state.bitcoinPrice} />
