@@ -31,7 +31,7 @@ class Panicoin extends React.Component {
             else
               return `bajo`;
           })();
-          const diferencia = newPrice - lastPrice == newPrice ? 0 : newPrice - lastPrice;
+          const diferencia = newPrice - lastPrice == newPrice ? '' : newPrice - lastPrice;
           const strDiferencia = diferencia > 0 ? `+`+diferencia : diferencia;
           return { bitcoinPrice: newPrice, bitcoinStatus: bitcoinStatus, diferencia: strDiferencia};
         });
