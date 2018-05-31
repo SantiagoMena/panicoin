@@ -1,8 +1,9 @@
 import React from 'react';
-import { StyleSheet, Text, View, Image, Slider } from 'react-native';
+import { StyleSheet, Text, View, Image, Slider, AsyncStorage } from 'react-native';
 import { AppLoading, Asset, Font } from 'expo';
 import { FontAwesome } from '@expo/vector-icons';
 import store from './store';
+import TimerMixin from 'react-timer-mixin';
 
 function cacheImages(images) {
   return images.map(image => {
@@ -56,6 +57,12 @@ export default class App extends React.Component {
 class Panicoin extends React.Component {
   constructor(props) {
     super(props);
+    let tiempo=1;
+    try {
+      tiempo = await AsyncStorage.getItem('tiempo');
+    } catch (error) {
+      console.log('##ERROR## On get AsyncStorage');
+    }
     this.state = {
       bitcoinPrice: 0, 
       bitcoinStatus: null, 
@@ -64,45 +71,54 @@ class Panicoin extends React.Component {
       minTiempo: 1,
       maxTiempo: 100
     };
-    //const apiUrl = 'https://bitex.la/api-v1/rest/btc_usd/market/ticker';
-    const apiUrl = 'https://www.bitstamp.net/api/ticker/';
-    let tiempoRecarga = 1000;
     store.subscribe(() => {
-
-      //alert(store.getState().tiempo);
       this.setState({
-        tiempo: store.getState().tiempo
-      });
-    });
-    setInterval(() => {
-      fetch(apiUrl)
-      .then((response) => response.json())
-      .then((responseJson) => {
-        this.setState(previousState => {
-          const lastPrice = previousState.bitcoinPrice;
-          const newPrice = responseJson.ask;
-          console.log('New Ask Price: '+newPrice);
-          const bitcoinStatus = (() => {
-            if(newPrice == lastPrice || newPrice - lastPrice == newPrice)
-              return `igual`;
-            else if(newPrice > lastPrice)
-              return `subio`;
-            else
-              return `bajo`;
-          })();
-          const diferencia = newPrice - lastPrice == newPrice ? '' : newPrice - lastPrice;
-          const strDiferencia = diferencia > 0 ? `+`+diferencia : diferencia;
-          //console.log(this.state.tiempo);
-          return { bitcoinPrice: newPrice, bitcoinStatus: bitcoinStatus, diferencia: strDiferencia };
+        tiempo: store.getState().tiempo,
+        intervalo: ((tiempoRecarga) => {
+            //const apiUrl = 'https://bitex.la/api-v1/rest/btc_usd/market/ticker';
+            const apiUrl = 'https://www.bitstamp.net/api/ticker/';
+            console.log(tiempoRecarga);
+            return setInterval(() => {
+              fetch(apiUrl)
+              .then((response) => response.json())
+              .then((responseJson) => {
+                this.setState(previousState => {
+                  const lastPrice = previousState.bitcoinPrice;
+                  const newPrice = responseJson.ask;
+                  console.log('New Ask Price: '+newPrice);
+                  const bitcoinStatus = (() => {
+                    if(newPrice == lastPrice || newPrice - lastPrice == newPrice)
+                      return `igual`;
+                    else if(newPrice > lastPrice)
+                      return `subio`;
+                    else
+                      return `bajo`;
+                  })();
+                  const diferencia = newPrice - lastPrice == newPrice ? '' : newPrice - lastPrice;
+                  const strDiferencia = diferencia > 0 ? `+`+diferencia : diferencia;
+                  return { bitcoinPrice: newPrice, bitcoinStatus: bitcoinStatus, diferencia: strDiferencia };
+                });
+              });
+            }, tiempoRecarga);
+          })(store.getState().tiempo * 1000)
         });
-        //intervalo(tiempoRecarga);
       });
-    }, this.state.tiempo * 1000);
-    //intervalo(tiempoRecarga);
-    //clearInterval(intervalo);
-  };
+    };
+    componentDidMount(){
+      store.dispatch({
+        type: 'CHANGE',
+        tiempo: this.state.tiempo
+      });
+    }
   render(){
-    const tiempoCambioHandle = (val) => { 
+    const tiempoCambioHandle = (val) => {
+      try {
+        await AsyncStorage.setItem('tiempo', val);
+      } catch (error) {
+        console.log('##ERROR## On save AsyncStorage');
+      }
+      
+      clearInterval(this.state.intervalo);
       store.dispatch({
         type: 'CHANGE',
         tiempo: val
@@ -128,15 +144,18 @@ class Tiempo extends React.Component {
     const tiempoCambioHandle = this.props.tiempoCambioHandle;
     const tiempoCambiandoHandle = this.props.tiempoCambiandoHandle;
     return(
-        <Slider
-         style={styles.slider}
-         step={1}
-         minimumValue={minTiempo}
-         maximumValue={maxTiempo}
-         value={tiempo}
-         onValueChange={(val) => tiempoCambiandoHandle(val)}
-         onSlidingComplete={ (val) => tiempoCambioHandle(val)}
-        />
+        <View>
+          <Text>Tiempo de recarga: {tiempo} segundos</Text>
+          <Slider
+          style={styles.slider}
+          step={1}
+          minimumValue={minTiempo}
+          maximumValue={maxTiempo}
+          value={tiempo}
+          onValueChange={(val) => tiempoCambiandoHandle(val)}
+          onSlidingComplete={ (val) => tiempoCambioHandle(val)}
+          />
+        </View>
       );
   }
 }
