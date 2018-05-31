@@ -2,7 +2,7 @@ import React from 'react';
 import { StyleSheet, Text, View, Image, Slider } from 'react-native';
 import { AppLoading, Asset, Font } from 'expo';
 import { FontAwesome } from '@expo/vector-icons';
-
+import store from './store';
 
 function cacheImages(images) {
   return images.map(image => {
@@ -56,9 +56,24 @@ export default class App extends React.Component {
 class Panicoin extends React.Component {
   constructor(props) {
     super(props);
-    this.state = {bitcoinPrice: 0, bitcoinStatus: null, diferencia: null};
+    this.state = {
+      bitcoinPrice: 0, 
+      bitcoinStatus: null, 
+      diferencia: null,
+      tiempo: 1,
+      minTiempo: 1,
+      maxTiempo: 100
+    };
     //const apiUrl = 'https://bitex.la/api-v1/rest/btc_usd/market/ticker';
     const apiUrl = 'https://www.bitstamp.net/api/ticker/';
+    let tiempoRecarga = 1000;
+    store.subscribe(() => {
+
+      //alert(store.getState().tiempo);
+      this.setState({
+        tiempo: store.getState().tiempo
+      });
+    });
     setInterval(() => {
       fetch(apiUrl)
       .then((response) => response.json())
@@ -77,28 +92,52 @@ class Panicoin extends React.Component {
           })();
           const diferencia = newPrice - lastPrice == newPrice ? '' : newPrice - lastPrice;
           const strDiferencia = diferencia > 0 ? `+`+diferencia : diferencia;
-          return { bitcoinPrice: newPrice, bitcoinStatus: bitcoinStatus, diferencia: strDiferencia};
+          //console.log(this.state.tiempo);
+          return { bitcoinPrice: newPrice, bitcoinStatus: bitcoinStatus, diferencia: strDiferencia };
         });
+        //intervalo(tiempoRecarga);
       });
-    }, 1000);
-  }
+    }, this.state.tiempo * 1000);
+    //intervalo(tiempoRecarga);
+    //clearInterval(intervalo);
+  };
   render(){
+    const tiempoCambioHandle = (val) => { 
+      store.dispatch({
+        type: 'CHANGE',
+        tiempo: val
+      });
+    };
+    const tiempoCambiandoHandle = (val) => {/*alert(val)*/};
     return (
       <View style={styles.container}>
-      <Slider
-       style={{ width: 300}}
-       step={1}
-       minimumValue={18}
-       maximumValue={71}
-       value={200}
-       onValueChange={val => alert(val)}
-       onSlidingComplete={ val => alert(val)}
-      />
+        <Tiempo tiempo={this.state.tiempo} maxTiempo={this.state.maxTiempo} minTiempo={this.state.minTiempo} tiempoCambiandoHandle={tiempoCambiandoHandle} tiempoCambioHandle={tiempoCambioHandle}/>
         <Diferencia diferencia={this.state.diferencia} />
         <Meme bitcoinStatus={this.state.bitcoinStatus} />
         <Bitcoin bitcoinPrice={this.state.bitcoinPrice} />
       </View>
     );
+  }
+}
+
+class Tiempo extends React.Component {
+  render(){
+    const tiempo = this.props.tiempo;
+    const minTiempo = this.props.minTiempo;
+    const maxTiempo = this.props.maxTiempo;
+    const tiempoCambioHandle = this.props.tiempoCambioHandle;
+    const tiempoCambiandoHandle = this.props.tiempoCambiandoHandle;
+    return(
+        <Slider
+         style={styles.slider}
+         step={1}
+         minimumValue={minTiempo}
+         maximumValue={maxTiempo}
+         value={tiempo}
+         onValueChange={(val) => tiempoCambiandoHandle(val)}
+         onSlidingComplete={ (val) => tiempoCambioHandle(val)}
+        />
+      );
   }
 }
 
@@ -155,20 +194,19 @@ class Diferencia extends React.Component {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    flexDirection: 'column',
+    justifyContent: 'space-between',
     backgroundColor: '#fff',
     alignItems: 'center',
     justifyContent: 'center',
-    top: 150,
   },
   text: {
     color: '#000',
     fontSize: 20,
-    flex:1
   },
   image: {
     width: 250,
     height: 250,
-    flex:1
   },
   diferencia: {
     color: 'black',
@@ -180,6 +218,10 @@ const styles = StyleSheet.create({
   },
   diferenciaBajo: {
     color: 'red',
-  }
+  },
+  slider: { 
+    width: 300,
+    height: 50,
+  },
 
 });
