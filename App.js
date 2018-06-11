@@ -57,17 +57,24 @@ export default class App extends React.Component {
 class Panicoin extends React.Component {
   constructor(props) {
     super(props);
-    let tiempo=1;
-    try {
-      tiempo = await AsyncStorage.getItem('tiempo');
-    } catch (error) {
-      console.log('##ERROR## On get AsyncStorage');
-    }
+    const tiempo = (async ()  => {
+      try{
+        const tiempo = await AsyncStorage.getItem('tiempo');
+        if(tiempo !== null){
+          return tiempo;
+        } else {
+          return 1;
+        }
+      } catch (error) {
+        console.log('##ERROR## On get AsyncStorage');
+      }
+    })();
+    
     this.state = {
       bitcoinPrice: 0, 
       bitcoinStatus: null, 
       diferencia: null,
-      tiempo: 1,
+      tiempo: tiempo,
       minTiempo: 1,
       maxTiempo: 100
     };
@@ -112,12 +119,14 @@ class Panicoin extends React.Component {
     }
   render(){
     const tiempoCambioHandle = (val) => {
-      try {
-        await AsyncStorage.setItem('tiempo', val);
-      } catch (error) {
-        console.log('##ERROR## On save AsyncStorage');
-      }
-      
+      const setAsyncTiempo = async (val) => {
+        try {
+          await AsyncStorage.setItem('tiempo', val);
+        } catch (error) {
+          console.log('##ERROR## On save AsyncStorage - Tiempo');
+        }
+      };
+      setAsyncTiempo();
       clearInterval(this.state.intervalo);
       store.dispatch({
         type: 'CHANGE',
