@@ -57,24 +57,23 @@ export default class App extends React.Component {
 class Panicoin extends React.Component {
   constructor(props) {
     super(props);
-    const tiempo = (async ()  => {
-      try{
-        const tiempo = await AsyncStorage.getItem('tiempo');
-        if(tiempo !== null){
-          return tiempo;
-        } else {
-          return 1;
-        }
-      } catch (error) {
-        console.log('##ERROR## On get AsyncStorage');
-      }
-    })();
-    
+    // let tiempo = (async ()  => {
+    //   try{
+    //     // const tiempo = await AsyncStorage.getItem('tiempo');
+    //     // if(tiempo !== null){
+    //     //   return tiempo;
+    //     // } else {
+    //       return 1;
+    //     // }
+    //   } catch (error) {
+    //     console.log('##ERROR## On get AsyncStorage');
+    //   }
+    // })();
     this.state = {
       bitcoinPrice: 0, 
       bitcoinStatus: null, 
       diferencia: null,
-      tiempo: tiempo,
+      tiempo: 1,
       minTiempo: 1,
       maxTiempo: 100
     };
@@ -111,7 +110,21 @@ class Panicoin extends React.Component {
         });
       });
     };
+    
+    _loadInitialState = async () => {
+      try{
+        const tiempoStorage = await AsyncStorage.getItem('tiempo');
+        if(tiempoStorage !== null)
+          this.setState({tiempo: tiempoStorage});
+        else
+          this.setState({tiempo: 1});
+
+      } catch (error) {
+        console.log('##ERROR## On get AsyncStorage');
+      }
+    };
     componentDidMount(){
+      this._loadInitialState();
       store.dispatch({
         type: 'CHANGE',
         tiempo: this.state.tiempo
