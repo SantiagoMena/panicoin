@@ -61,17 +61,17 @@ class Panicoin extends React.Component {
       bitcoinPrice: 0, 
       bitcoinStatus: null, 
       diferencia: null,
-      tiempo: 1,
+      // tiempo: 1,
       minTiempo: 1,
       maxTiempo: 100
     };
     console.log('constructor');
-    this._loadInitialState();
     store.subscribe(() => {
       console.log('Suscribe');
       this.setState({
         tiempo: store.getState().tiempo,
         intervalo: ((tiempoRecarga) => {
+            console.log('Inicia Intervalo');
             //const apiUrl = 'https://bitex.la/api-v1/rest/btc_usd/market/ticker';
             const apiUrl = 'https://www.bitstamp.net/api/ticker/';
             console.log(tiempoRecarga);
@@ -106,10 +106,12 @@ class Panicoin extends React.Component {
       console.log('_loadInitialState');
       try{
         const tiempoStorage = await AsyncStorage.getItem('tiempo');
-        if(tiempoStorage !== null)
-          this.setState({tiempo: tiempoStorage});
-        else
-          this.setState({tiempo: 1});
+        const valueTiempo = tiempoStorage !== null ? tiempoStorage : 1;
+        //Set Store
+        store.dispatch({
+          type: 'CHANGE',
+          tiempo: valueTiempo
+        });
 
       } catch (error) {
         console.log('##ERROR## On get AsyncStorage');
@@ -117,10 +119,7 @@ class Panicoin extends React.Component {
     };
     componentDidMount(){
       console.log('componentDidMount');
-      store.dispatch({
-        type: 'CHANGE',
-        tiempo: this.state.tiempo
-      });
+      this._loadInitialState();
     }
   render(){
     const tiempoCambioHandle = (val) => {
