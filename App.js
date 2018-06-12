@@ -127,7 +127,7 @@ class Panicoin extends React.Component {
       const setAsyncTiempo = async (val) => {
         try {
           console.log('Set AsyncStorage Tiempo: '+val);
-          await AsyncStorage.setItem('tiempo', parseInt(val));
+          await AsyncStorage.setItem('tiempo', String(val));
         } catch (error) {
           console.log('##ERROR## On save AsyncStorage - Tiempo');
           console.log(error);
@@ -154,7 +154,7 @@ class Panicoin extends React.Component {
 
 class Tiempo extends React.Component {
   render(){
-    const tiempo = this.props.tiempo;
+    const tiempo = parseInt(this.props.tiempo);
     const minTiempo = this.props.minTiempo;
     const maxTiempo = this.props.maxTiempo;
     const tiempoCambioHandle = this.props.tiempoCambioHandle;
@@ -170,8 +170,6 @@ class Tiempo extends React.Component {
           value={tiempo}
           onValueChange={(val) => tiempoCambiandoHandle(val)}
           onSlidingComplete={ (val) => tiempoCambioHandle(val)}
-          maximumTrackTintColor='transparent'  
-          minimumTrackTintColor='transparent'
           />
         </View>
       );
