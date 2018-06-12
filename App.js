@@ -57,18 +57,6 @@ export default class App extends React.Component {
 class Panicoin extends React.Component {
   constructor(props) {
     super(props);
-    // let tiempo = (async ()  => {
-    //   try{
-    //     // const tiempo = await AsyncStorage.getItem('tiempo');
-    //     // if(tiempo !== null){
-    //     //   return tiempo;
-    //     // } else {
-    //       return 1;
-    //     // }
-    //   } catch (error) {
-    //     console.log('##ERROR## On get AsyncStorage');
-    //   }
-    // })();
     this.state = {
       bitcoinPrice: 0, 
       bitcoinStatus: null, 
@@ -77,6 +65,7 @@ class Panicoin extends React.Component {
       minTiempo: 1,
       maxTiempo: 100
     };
+      this._loadInitialState();
     store.subscribe(() => {
       this.setState({
         tiempo: store.getState().tiempo,
@@ -124,7 +113,6 @@ class Panicoin extends React.Component {
       }
     };
     componentDidMount(){
-      this._loadInitialState();
       store.dispatch({
         type: 'CHANGE',
         tiempo: this.state.tiempo
