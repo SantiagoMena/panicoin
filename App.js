@@ -65,8 +65,10 @@ class Panicoin extends React.Component {
       minTiempo: 1,
       maxTiempo: 100
     };
-      this._loadInitialState();
+    console.log('constructor');
+    this._loadInitialState();
     store.subscribe(() => {
+      console.log('Suscribe');
       this.setState({
         tiempo: store.getState().tiempo,
         intervalo: ((tiempoRecarga) => {
@@ -101,6 +103,7 @@ class Panicoin extends React.Component {
     };
     
     _loadInitialState = async () => {
+      console.log('_loadInitialState');
       try{
         const tiempoStorage = await AsyncStorage.getItem('tiempo');
         if(tiempoStorage !== null)
@@ -113,6 +116,7 @@ class Panicoin extends React.Component {
       }
     };
     componentDidMount(){
+      console.log('componentDidMount');
       store.dispatch({
         type: 'CHANGE',
         tiempo: this.state.tiempo
@@ -122,12 +126,14 @@ class Panicoin extends React.Component {
     const tiempoCambioHandle = (val) => {
       const setAsyncTiempo = async (val) => {
         try {
-          await AsyncStorage.setItem('tiempo', val);
+          console.log('Set AsyncStorage Tiempo: '+val);
+          await AsyncStorage.setItem('tiempo', parseInt(val));
         } catch (error) {
           console.log('##ERROR## On save AsyncStorage - Tiempo');
+          console.log(error);
         }
       };
-      setAsyncTiempo();
+      setAsyncTiempo(val);
       clearInterval(this.state.intervalo);
       store.dispatch({
         type: 'CHANGE',
@@ -164,6 +170,8 @@ class Tiempo extends React.Component {
           value={tiempo}
           onValueChange={(val) => tiempoCambiandoHandle(val)}
           onSlidingComplete={ (val) => tiempoCambioHandle(val)}
+          maximumTrackTintColor='transparent'  
+          minimumTrackTintColor='transparent'
           />
         </View>
       );
@@ -249,6 +257,7 @@ const styles = StyleSheet.create({
     color: 'red',
   },
   slider: { 
+    borderRadius: 50,
     width: 300,
     height: 50,
   },
