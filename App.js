@@ -1,8 +1,9 @@
 import React from 'react';
-import { StyleSheet, Text, View, Image, Slider } from 'react-native';
+import { StyleSheet, Text, View, Image, Slider, AsyncStorage } from 'react-native';
 import { AppLoading, Asset, Font } from 'expo';
 import { FontAwesome } from '@expo/vector-icons';
 import store from './store';
+import TimerMixin from 'react-timer-mixin';
 
 function cacheImages(images) {
   return images.map(image => {
@@ -33,7 +34,6 @@ export default class App extends React.Component {
 
     const fontAssets = cacheFonts([FontAwesome.font]);
 
-
     await Promise.all([...imageAssets, ...fontAssets]);
   }
 
@@ -57,6 +57,18 @@ export default class App extends React.Component {
 class Panicoin extends React.Component {
   constructor(props) {
     super(props);
+    // let tiempo = (async ()  => {
+    //   try{
+    //     // const tiempo = await AsyncStorage.getItem('tiempo');
+    //     // if(tiempo !== null){
+    //     //   return tiempo;
+    //     // } else {
+    //       return 1;
+    //     // }
+    //   } catch (error) {
+    //     console.log('##ERROR## On get AsyncStorage');
+    //   }
+    // })();
     this.state = {
       bitcoinPrice: 0, 
       bitcoinStatus: null, 
@@ -65,48 +77,70 @@ class Panicoin extends React.Component {
       minTiempo: 1,
       maxTiempo: 100
     };
-    //const apiUrl = 'https://bitex.la/api-v1/rest/btc_usd/market/ticker';
-    const apiUrl = 'https://www.bitstamp.net/api/ticker/';
-    //let tiempoRecarga = this.state.tiempo * 1000;
-    let intervalId;
-    intervalId = (tiempoRecarga) => {
-      return  setInterval(() => {
-        fetch(apiUrl)
-        .then((response) => response.json())
-        .then((responseJson) => {
-          this.setState(previousState => {
-            const lastPrice = previousState.bitcoinPrice;
-            const newPrice = responseJson.ask;
-            console.log('New Ask Price: '+newPrice);
-            const bitcoinStatus = (() => {
-              if(newPrice == lastPrice || newPrice - lastPrice == newPrice)
-                return `igual`;
-              else if(newPrice > lastPrice)
-                return `subio`;
-              else
-                return `bajo`;
-            })();
-            const diferencia = newPrice - lastPrice == newPrice ? '' : newPrice - lastPrice;
-            const strDiferencia = diferencia > 0 ? `+`+diferencia : diferencia;
-            //console.log(this.state.tiempo);
-            return { bitcoinPrice: newPrice, bitcoinStatus: bitcoinStatus, diferencia: strDiferencia };
-          });
-          //intervalo(tiempoRecarga);
-        });
-      }, tiempoRecarga);
-    };
-
     store.subscribe(() => {
-      clearInterval(intervalId);
       this.setState({
-        tiempo: store.getState().tiempo
+        tiempo: store.getState().tiempo,
+        intervalo: ((tiempoRecarga) => {
+            //const apiUrl = 'https://bitex.la/api-v1/rest/btc_usd/market/ticker';
+            const apiUrl = 'https://www.bitstamp.net/api/ticker/';
+            console.log(tiempoRecarga);
+            return setInterval(() => {
+              fetch(apiUrl)
+              .then((response) => response.json())
+              .then((responseJson) => {
+                this.setState(previousState => {
+                  const lastPrice = previousState.bitcoinPrice;
+                  const newPrice = responseJson.ask;
+                  console.log('New Ask Price: '+newPrice);
+                  const bitcoinStatus = (() => {
+                    if(newPrice == lastPrice || newPrice - lastPrice == newPrice)
+                      return `igual`;
+                    else if(newPrice > lastPrice)
+                      return `subio`;
+                    else
+                      return `bajo`;
+                  })();
+                  const diferencia = newPrice - lastPrice == newPrice ? '' : newPrice - lastPrice;
+                  const strDiferencia = diferencia > 0 ? `+`+diferencia : diferencia;
+                  return { bitcoinPrice: newPrice, bitcoinStatus: bitcoinStatus, diferencia: strDiferencia };
+                });
+              });
+            }, tiempoRecarga);
+          })(store.getState().tiempo * 1000)
+        });
       });
-    });
-    //intervalo(tiempoRecarga);
-    //clearInterval(intervalo);
-  };
+    };
+    
+    _loadInitialState = async () => {
+      try{
+        const tiempoStorage = await AsyncStorage.getItem('tiempo');
+        if(tiempoStorage !== null)
+          this.setState({tiempo: tiempoStorage});
+        else
+          this.setState({tiempo: 1});
+
+      } catch (error) {
+        console.log('##ERROR## On get AsyncStorage');
+      }
+    };
+    componentDidMount(){
+      this._loadInitialState();
+      store.dispatch({
+        type: 'CHANGE',
+        tiempo: this.state.tiempo
+      });
+    }
   render(){
-    const tiempoCambioHandle = (val) => { 
+    const tiempoCambioHandle = (val) => {
+      const setAsyncTiempo = async (val) => {
+        try {
+          await AsyncStorage.setItem('tiempo', val);
+        } catch (error) {
+          console.log('##ERROR## On save AsyncStorage - Tiempo');
+        }
+      };
+      setAsyncTiempo();
+      clearInterval(this.state.intervalo);
       store.dispatch({
         type: 'CHANGE',
         tiempo: val
@@ -132,15 +166,18 @@ class Tiempo extends React.Component {
     const tiempoCambioHandle = this.props.tiempoCambioHandle;
     const tiempoCambiandoHandle = this.props.tiempoCambiandoHandle;
     return(
-        <Slider
-         style={styles.slider}
-         step={1}
-         minimumValue={minTiempo}
-         maximumValue={maxTiempo}
-         value={tiempo}
-         onValueChange={(val) => tiempoCambiandoHandle(val)}
-         onSlidingComplete={ (val) => tiempoCambioHandle(val)}
-        />
+        <View>
+          <Text>Tiempo de recarga: {tiempo} segundos</Text>
+          <Slider
+          style={styles.slider}
+          step={1}
+          minimumValue={minTiempo}
+          maximumValue={maxTiempo}
+          value={tiempo}
+          onValueChange={(val) => tiempoCambiandoHandle(val)}
+          onSlidingComplete={ (val) => tiempoCambioHandle(val)}
+          />
+        </View>
       );
   }
 }
