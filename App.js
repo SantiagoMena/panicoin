@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, Text, View, Image, Slider, AsyncStorage } from 'react-native';
+import { StyleSheet, Text, View, Image, Slider, AsyncStorage, Picker } from 'react-native';
 import { AppLoading, Asset, Font } from 'expo';
 import { FontAwesome } from '@expo/vector-icons';
 import store from './store';
@@ -61,28 +61,33 @@ class Panicoin extends React.Component {
       bitcoinPrice: 0, 
       bitcoinStatus: null, 
       diferencia: null,
-      // tiempo: 1,
       minTiempo: 1,
       maxTiempo: 100
     };
     console.log('constructor');
     store.subscribe(() => {
       console.log('Suscribe');
+
+      if(this.state.intervalo){
+        console.log('clearInterval');
+        clearInterval(this.state.intervalo);
+      }
+
       this.setState({
         tiempo: store.getState().tiempo,
+        // fuente: store.getState().fuente,
         intervalo: ((tiempoRecarga) => {
-            console.log('Inicia Intervalo');
-            //const apiUrl = 'https://bitex.la/api-v1/rest/btc_usd/market/ticker';
-            const apiUrl = 'https://www.bitstamp.net/api/ticker/';
-            console.log(tiempoRecarga);
             return setInterval(() => {
-              fetch(apiUrl)
+              console.log('Inicia Intervalo');
+              console.log('fuente: '+store.getState().fuente);
+              console.log('tiempo de recarga: '+tiempoRecarga);
+              fetch(store.getState().fuente)
               .then((response) => response.json())
               .then((responseJson) => {
                 this.setState(previousState => {
                   const lastPrice = previousState.bitcoinPrice;
                   const newPrice = responseJson.ask;
-                  console.log('New Ask Price: '+newPrice);
+                  console.log('New Ask Price: '+newPrice+' From: '+store.getState().fuente);
                   const bitcoinStatus = (() => {
                     if(newPrice == lastPrice || newPrice - lastPrice == newPrice)
                       return `igual`;
@@ -100,48 +105,78 @@ class Panicoin extends React.Component {
           })(store.getState().tiempo * 1000)
         });
       });
+      this._loadInitialState();
     };
     
     _loadInitialState = async () => {
       console.log('_loadInitialState');
       try{
         const tiempoStorage = await AsyncStorage.getItem('tiempo');
-        const valueTiempo = tiempoStorage !== null ? tiempoStorage : 1;
-        //Set Store
+        // const valueTiempo = tiempoStorage !== null ? tiempoStorage : 1;
+
+        const fuenteStorage = await AsyncStorage.getItem('fuente');
+        // const valueFuente = fuenteStorage !== null ? fuenteStorage : 'https://www.bitstamp.net/api/ticker/';
+
+        console.log('Set initial tiempo: '+tiempoStorage);
+        console.log('Set initial fuente: '+fuenteStorage);
+        //Set State Tiempo
+        this.setState({
+          tiempo: tiempoStorage,
+          fuente: fuenteStorage
+        });
+        //Set Store Tiempo
         store.dispatch({
-          type: 'CHANGE',
-          tiempo: valueTiempo
+          type: 'INIT',
+          tiempo: tiempoStorage,
+          fuente: fuenteStorage
         });
 
       } catch (error) {
         console.log('##ERROR## On get AsyncStorage');
+        console.log(error);
       }
     };
     componentDidMount(){
       console.log('componentDidMount');
-      this._loadInitialState();
     }
-  render(){
-    const tiempoCambioHandle = (val) => {
-      const setAsyncTiempo = async (val) => {
-        try {
-          console.log('Set AsyncStorage Tiempo: '+val);
-          await AsyncStorage.setItem('tiempo', String(val));
-        } catch (error) {
-          console.log('##ERROR## On save AsyncStorage - Tiempo');
-          console.log(error);
+    render(){
+      const tiempoCambioHandle = (val) => {
+        const setAsyncTiempo = async (val) => {
+          try {
+            console.log('Set AsyncStorage Tiempo: '+val);
+            await AsyncStorage.setItem('tiempo', String(val));
+          } catch (error) {
+            console.log('##ERROR## On save AsyncStorage - Tiempo');
+            console.log(error);
         }
       };
       setAsyncTiempo(val);
-      clearInterval(this.state.intervalo);
       store.dispatch({
-        type: 'CHANGE',
+        type: 'CHANGE_TIEMPO',
         tiempo: val
       });
     };
     const tiempoCambiandoHandle = (val) => {/*alert(val)*/};
+      const setAsyncFuente = async (val) => {
+        try {
+          console.log('Set AsyncStorage fuente: '+val);
+          await AsyncStorage.setItem('fuente', String(val));
+        } catch (error) {
+          console.log('##ERROR## On save AsyncStorage - Fuente');
+          console.log(error);
+        }
+      };
+      const fuenteCambioHandle = (index, val) => {
+        console.log('cambio fuente',index,val);
+        setAsyncFuente(index);
+        store.dispatch({
+          type: 'CHANGE_FUENTE',
+          fuente: index
+      });
+    };
     return (
       <View style={styles.container}>
+        <Fuente onChangeHandle={fuenteCambioHandle} fuente={this.state.fuente}/>
         <Tiempo tiempo={this.state.tiempo} maxTiempo={this.state.maxTiempo} minTiempo={this.state.minTiempo} tiempoCambiandoHandle={tiempoCambiandoHandle} tiempoCambioHandle={tiempoCambioHandle}/>
         <Diferencia diferencia={this.state.diferencia} />
         <Meme bitcoinStatus={this.state.bitcoinStatus} />
@@ -225,6 +260,20 @@ class Diferencia extends React.Component {
     );
   }
 }
+
+class Fuente extends React.Component {
+  render(){
+    return(
+      <Picker
+        selectedValue={this.props.fuente}
+        style={styles.fuente}
+        onValueChange={this.props.onChangeHandle}>
+        <Picker.Item label="Bitex.la" value="https://bitex.la/api-v1/rest/btc_usd/market/ticker" />
+        <Picker.Item label="BitStamp" value="https://www.bitstamp.net/api/ticker/" />
+      </Picker>
+    );
+  }
+}
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -257,6 +306,12 @@ const styles = StyleSheet.create({
     borderRadius: 50,
     width: 300,
     height: 50,
+  },
+  fuente: {
+    height: 25, 
+    width: 100,
+    marginTop: -200,
+    marginBottom: 150
   },
 
 });
