@@ -1,5 +1,6 @@
 # panicoin
 Aplicación nativa desarrollada con React Native indica el precio del bitcoin por segundo.
-
-npm i
-npm start
+<ul>
+<li>npm i</li>
+<li>npm start</li>
+</ul>
